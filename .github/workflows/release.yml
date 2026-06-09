@@ -23,8 +23,6 @@ jobs:
           repository: LeoJ1mmy/beszel
           ref: main
           fetch-depth: 0
-          # BESZEL_ACCESS_TOKEN: PAT with repo scope (read access to LeoJ1mmy/beszel)
-          # Add it at: LeoJ1mmy/beszel-agent → Settings → Secrets → Actions
           token: ${{ secrets.BESZEL_ACCESS_TOKEN }}
 
       - name: Set version tag
@@ -48,6 +46,15 @@ jobs:
       - name: Build frontend
         run: bun run --cwd ./internal/site build
 
+      - name: Set up .NET (required for Windows LHM sensors)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Build .NET LHM executable for Windows sensors
+        run: dotnet build -c Release ./agent/lhm/beszel_lhm.csproj
+        shell: bash
+
       - name: Run GoReleaser (agent only)
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -55,5 +62,4 @@ jobs:
           version: latest
           args: release --clean --config .goreleaser-agent.yml
         env:
-          # GITHUB_TOKEN here is the default token for beszel-agent (write access to releases)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
