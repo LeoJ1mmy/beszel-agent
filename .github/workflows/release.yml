@@ -23,9 +23,10 @@ jobs:
           repository: LeoJ1mmy/beszel
           ref: main
           fetch-depth: 0
+          # BESZEL_ACCESS_TOKEN: PAT with repo scope (read access to LeoJ1mmy/beszel)
+          # Add it at: LeoJ1mmy/beszel-agent → Settings → Secrets → Actions
+          token: ${{ secrets.BESZEL_ACCESS_TOKEN }}
 
-      # Goreleaser needs the tag to exist on the checked-out repo.
-      # When triggered from beszel-agent, we re-create the tag here.
       - name: Set version tag
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
@@ -54,7 +55,5 @@ jobs:
           version: latest
           args: release --clean --config .goreleaser-agent.yml
         env:
-          # Uses RELEASE_TOKEN (PAT with write access to beszel-agent)
-          # Falls back to GITHUB_TOKEN which has write access to beszel-agent
-          # since this workflow runs IN the beszel-agent repo
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN here is the default token for beszel-agent (write access to releases)
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
