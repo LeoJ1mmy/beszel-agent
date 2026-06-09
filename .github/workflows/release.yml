@@ -1,0 +1,60 @@
+name: Release Beszel Agent
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v0.18.7)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full beszel codebase
+        uses: actions/checkout@v4
+        with:
+          repository: LeoJ1mmy/beszel
+          ref: main
+          fetch-depth: 0
+
+      # Goreleaser needs the tag to exist on the checked-out repo.
+      # When triggered from beszel-agent, we re-create the tag here.
+      - name: Set version tag
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git tag -f "$TAG" || true
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "^1.22.1"
+
+      - name: Set up bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: bun install --no-save --cwd ./internal/site
+
+      - name: Build frontend
+        run: bun run --cwd ./internal/site build
+
+      - name: Run GoReleaser (agent only)
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean --config .goreleaser-agent.yml
+        env:
+          # Uses RELEASE_TOKEN (PAT with write access to beszel-agent)
+          # Falls back to GITHUB_TOKEN which has write access to beszel-agent
+          # since this workflow runs IN the beszel-agent repo
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
