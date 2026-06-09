@@ -55,6 +55,12 @@ jobs:
         run: dotnet build -c Release ./agent/lhm/beszel_lhm.csproj
         shell: bash
 
+      - name: Delete existing release if present
+        run: gh release delete "$TAG" --yes --repo LeoJ1mmy/beszel-agent || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
       - name: Run GoReleaser (agent only)
         uses: goreleaser/goreleaser-action@v6
         with:
